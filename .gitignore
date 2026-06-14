@@ -1,3 +1,44 @@
-target/
+# Clojure / Babashka build
+*.class
+*.jar
 .cpcache/
+/target
+/tmp
+/checkouts
+/classes
+
+# Leiningen
+pom.xml
+pom.xml.asc
+profiles.clj
+/.lein-*
+
+# IDE / editor
+*.iml
+*.db
+.idea/
+.lsp/
 .clj-kondo/
+.DS_Store
+.nrepl-port
+
+# Test artifacts
+.specljs-timestamp
+
+# Local agent / tooling caches
+.serena/
+.toolbox/
+.claude/
+.opencode/
+opencode.json
+
+# Secrets / local-only
+.env
+.beads-credential-key
+.isaac-home
+.verify-baseline.edn
+.java-version
+
+# Node
+node_modules/
+package-lock.json
