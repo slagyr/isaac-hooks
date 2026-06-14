@@ -1,0 +1,221 @@
+(ns isaac.hooks
+  (:require
+    [cheshire.core :as json]
+    [clojure.set :as set]
+    [clojure.string :as str]
+    [isaac.bridge.core :as bridge]
+    [isaac.charge :as charge]
+    [isaac.comm.null :as null-comm]
+    [isaac.config.loader :as loader]
+    [isaac.config.runtime :as runtime]
+    [isaac.reconfigurable :as reconfigurable]
+    [isaac.fs :as fs]
+    [isaac.logger :as log]
+    [isaac.session.context :as session-ctx]
+    [isaac.session.store.spi :as store]
+    [isaac.session.store.sidecar :as sidecar-store]
+    [isaac.nexus :as nexus]))
+
+;; Holds the future for the most recently dispatched hook turn so test
+;; harnesses can await completion via (deref (last-turn-future)).
+(defonce last-turn-future* (atom nil))
+
+(defn last-turn-future [] @last-turn-future*)
+
+;; Registry: name → {:source :config|:module, :entry hook-config-or-fn}
+(defonce ^:private registry* (atom {}))
+
+(defn- hook-entries [hooks]
+  (into {}
+        (keep (fn [[name entry]]
+                (when (and (not= :auth name) (map? entry))
+                  [(runtime/->name name) entry])))
+        hooks))
+
+(defn reset-registry!
+  "Clear the registry. For test isolation."
+  []
+  (reset! registry* {}))
+
+(defn lookup-hook
+  "Return the registry entry for hook name, or nil."
+  [name]
+  (get @registry* name))
+
+(defn register-hook!
+  "Register a hook by name. source is :config or :module.
+   Throws on collision (module vs config with same name)."
+  [name entry source]
+  (let [existing (get @registry* name)]
+    (when (and existing (not= (:source existing) source))
+      (log/error :hook/collision :name name :existing-source (:source existing) :new-source source)
+      (throw (ex-info (str "hook name collision: " name) {:name name}))))
+  (swap! registry* assoc name {:source source :entry entry})
+  (log/info :hook/registered :name name :source source))
+
+(defn register-hook-entry!
+  "Per-entry factory for the :isaac.hooks/hook berth (phase 7 of the
+   berth epic). Receives `[hook-id entry]`; resolves the entry's
+   symbol-valued :factory and registers the returned spec as a module-
+   sourced hook."
+  [[hook-id entry]]
+  (let [hook-name (clojure.core/name hook-id)
+        factory   (some-> (:factory entry) requiring-resolve var-get)
+        spec      (factory)]
+    (register-hook! hook-name spec :module)))
+
+(defn deregister-hook!
+  "Remove a hook by name from the registry."
+  [name]
+  (when (contains? @registry* name)
+    (let [entry (get @registry* name)]
+      (swap! registry* dissoc name)
+      (log/info :hook/deregistered :name name :source (:source entry)))))
+
+(defn- reconcile-config-hooks [old-hooks new-hooks]
+  (let [old-hooks (hook-entries old-hooks)
+        new-hooks (hook-entries new-hooks)
+        old-names (set (keys old-hooks))
+        new-names (set (keys new-hooks))]
+    (doseq [name (set/difference old-names new-names)]
+      (when (= :config (:source (get @registry* name)))
+        (deregister-hook! name)))
+    (doseq [name (set/intersection old-names new-names)]
+      (let [old-hook (get old-hooks name)
+            new-hook (get new-hooks name)]
+        (when (and (map? new-hook)
+                   (= :config (:source (get @registry* name)))
+                   (not= old-hook new-hook))
+          (deregister-hook! name)
+          (register-hook! name new-hook :config))))
+    (doseq [name (set/difference new-names old-names)]
+      (when-let [hook-cfg (get new-hooks name)]
+        (when (map? hook-cfg)
+          (register-hook! name hook-cfg :config))))))
+
+;; Reconfigurable implementation
+
+(deftype HooksModule []
+  reconfigurable/Reconfigurable
+  (on-startup! [_ slice]
+    (reconcile-config-hooks nil slice))
+  (on-config-change! [_ old-slice new-slice]
+    (reconcile-config-hooks old-slice new-slice)))
+
+(defn make
+  "Factory: creates a HooksModule instance."
+  [_host]
+  (HooksModule.))
+
+(def registry
+  {:kind    :component
+   :path    [:hooks]
+   :impl    "hooks"
+   :factory make})
+
+;; Handler
+
+(defn- hook-name [uri]
+  (when (str/starts-with? uri "/hooks/")
+    (let [name (subs uri (count "/hooks/"))]
+      (when-not (str/blank? name) name))))
+
+(defn- read-body [request]
+  (let [body (:body request)]
+    (cond
+      (nil? body)    ""
+      (string? body) body
+      :else          (slurp body))))
+
+(defn- render-template [template vars]
+  (str/replace template #"\{\{(\w+)\}\}"
+               (fn [[_ key]]
+                 (let [v (get vars (keyword key))]
+                   (if (some? v) (str v) "(missing)")))))
+
+(defn- json-content-type? [request]
+  (let [ct (get-in request [:headers "content-type"] "")]
+    (str/includes? ct "application/json")))
+
+(defn- dispatch-turn! [charge*]
+  (let [fut (future
+              (try
+                (bridge/dispatch! charge*)
+                (catch Exception e
+                  (log/error :hook/dispatch-error
+                             :session (:session-key charge*)
+                             :error (.getMessage e)))))]
+    (reset! last-turn-future* fut)
+    fut))
+
+(defn- runtime-fs! [runtime]
+  (or (fs/instance runtime) (throw (ex-info "hooks require :fs in system" {}))))
+
+(defn handler
+  ([request]
+   (handler (nexus/necho) request))
+  ([runtime request]
+   (let [cfg          (loader/snapshot "hook dispatch entry — ambient config for hook handler")
+         root    (or (:root cfg) (:root runtime))
+         name         (hook-name (:uri request))]
+     (cond
+       ;; 1. Method check
+       (not= :post (:request-method request))
+       {:status 405 :headers {"Content-Type" "text/plain"} :body "Method Not Allowed"}
+
+       ;; 2. Path lookup — from registry
+       (nil? (lookup-hook name))
+       {:status 404 :headers {"Content-Type" "text/plain"} :body "Not Found"}
+
+       :else
+       (let [hook (:entry (lookup-hook name))]
+         (cond
+           ;; 3. Content-type check
+           (not (json-content-type? request))
+           {:status 415 :headers {"Content-Type" "text/plain"} :body "Unsupported Media Type"}
+
+           :else
+           (let [body-str (read-body request)
+                 body     (try (json/parse-string body-str true)
+                               (catch Exception _ ::parse-error))]
+             (if (= ::parse-error body)
+               ;; 4. Body parse error
+               {:status 400 :headers {"Content-Type" "text/plain"} :body "Bad Request"}
+
+               ;; 5. Render and dispatch
+                 (let [fs*              (runtime-fs! runtime)
+                       session-store    (or (nexus/get-in [:sessions :store])
+                                            (:session-store runtime)
+                                            (some-> root (sidecar-store/create-store fs*))
+                                            (throw (ex-info "hook handler requires :root or :session-store" {})))
+                      crew-id          (or (:crew hook) "main")
+                      session-key      (or (:session-key hook) (str "hook:" name))
+                     existing-session (store/get-session session-store session-key)
+                     quarters         (str root "/crew/" crew-id)
+                     template         (:template hook)
+                     message          (render-template template body)
+                     charge*          (charge/build {:session-key    session-key
+                                                     :input          message
+                                                     :comm           null-comm/channel
+                                                     :config         (assoc cfg :root root)
+                                                     :crew           (:crew hook)
+                                                     :model-override (:model hook)
+                                                     :origin         {:kind :webhook :name name}})]
+                  (log/info :hook/dispatch-planned
+                            :hook name
+                            :session session-key
+                            :crew crew-id
+                            :cwd (:cwd existing-session)
+                            :existing-session? (boolean existing-session)
+                            :message-chars (count message)
+                            :has-model-override? (some? (:model hook)))
+                  (when-not existing-session
+                    (fs/mkdirs fs* quarters)
+                    (session-ctx/create-with-resolved-behavior!
+                      session-key {:crew          crew-id
+                                   :cwd           quarters
+                                   :config        cfg
+                                   :session-store session-store
+                                   :origin        {:kind :webhook :name name}}))
+                 (dispatch-turn! charge*)
+                 {:status 202 :headers {"Content-Type" "text/plain"} :body "Accepted"})))))))))

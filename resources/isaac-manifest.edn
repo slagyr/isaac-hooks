@@ -1,0 +1,46 @@
+{:id       :isaac.hooks
+ :version  "0.1.0"
+ :builtin? true
+ :factory  isaac.module.protocol/module
+
+ :berths
+ {:isaac.hooks/hook {:description "Event hooks installed into the hook registry. Per-entry factory resolves :factory and registers the returned spec via isaac.hooks/register-hook!."
+                     :schema      {:type       :map
+                                   :key-spec   {:type :keyword}
+                                   :value-spec {:type    :map
+                                                :factory isaac.hooks/register-hook-entry!
+                                                :schema  {:factory {:type :symbol :validations [:present?]}}}}}}
+
+ ;; Route contribution to the server's :isaac.server/route berth (data only —
+ ;; inert when no HTTP host is loaded; no code dependency on isaac-server).
+ :isaac.server/route
+ [{:method :* :path "/hooks/*" :handler isaac.hooks/handler}]
+
+ :isaac.config/schema
+ {:hooks {:entity-dir   "hooks"
+          :frontmatter? true
+          :companion    {:field :template :mode :required}
+          :schema       {:name        :hooks
+                         :type        :map
+                         :description "Webhook configuration"
+                         :key-spec    {:type :string}
+                         :value-spec  {:name        :hook
+                                       :type        :map
+                                       :description "Webhook receiver configuration"
+                                       :schema      {:crew        {:type        :id
+                                                                   :description "Crew id to run the hook as"
+                                                                   :validations [:crew-exists?]}
+                                                     :id          {:type        :id
+                                                                   :description "Hook id; must match filename when present"}
+                                                     :model       {:type        :id
+                                                                   :description "Optional model override for the hook session"
+                                                                   :validations [:model-exists?]}
+                                                     :session-key {:type        :string
+                                                                   :description "Session key to use for dispatched turns"}
+                                                     :template    {:type        :string
+                                                                   :description "Rendered message template for the hook body"}}}
+                         :schema      {:auth {:name        :hook-auth
+                                              :type        :map
+                                              :description "Retired webhook auth configuration"
+                                              :schema      {:token {:type        :string
+                                                                    :validations [[:retired? "use :server :auth :token"]]}}}}}}}}
