@@ -1,9 +1,11 @@
 {:paths ["src" "resources"]
 
- :deps {io.github.slagyr/isaac-agent {:local/root "../isaac-agent"}}
+ :deps {io.github.slagyr/isaac-agent {:git/url "https://github.com/slagyr/isaac-agent.git"
+                                     :git/sha "077d087169cb02b37a7434b30de73d29129a7769"}}
 
  :aliases
- {:dev-local {:override-deps {io.github.slagyr/isaac-foundation-spec {:local/root "../isaac-foundation/spec"}
+ {:dev-local {:override-deps {io.github.slagyr/isaac-agent                {:local/root "../isaac-agent"}
+                               io.github.slagyr/isaac-foundation-spec {:local/root "../isaac-foundation/spec"}
                                marigold.bridge/marigold.bridge        {:local/root "../isaac-foundation/modules/marigold.bridge"}
                                marigold.longwave/marigold.longwave    {:local/root "../isaac-foundation/modules/marigold.longwave"}}}
 
