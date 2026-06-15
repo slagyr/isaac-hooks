@@ -1,6 +1,9 @@
 {:paths ["src" "resources"]
 
- :deps {io.github.slagyr/isaac-agent {:git/url "https://github.com/slagyr/isaac-agent.git"
+ :deps {io.github.slagyr/isaac-foundation {:git/url "https://github.com/slagyr/isaac-foundation.git"
+                                          :git/tag "v0.1.0"
+                                          :git/sha "535ce491e45875ac97bf97a4b2306def7bb82a7c"}
+        io.github.slagyr/isaac-agent {:git/url "https://github.com/slagyr/isaac-agent.git"
                                      :git/sha "077d087169cb02b37a7434b30de73d29129a7769"}}
 
  :aliases
