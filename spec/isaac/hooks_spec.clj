@@ -34,7 +34,7 @@
 (describe "Webhook handler"
 
   (defn- startup-hooks! [slice]
-    (runtime/on-startup! (sut/make nil) slice))
+    (runtime/on-load (sut/make nil) slice))
 
   #_{:clj-kondo/ignore [:invalid-arity]}
   (around [it]
@@ -53,7 +53,7 @@
     (it "updates hook content when the slice changes"
       (sut/reset-registry!)
       (let [module (sut/make nil)]
-        (runtime/on-startup! module {marigold/lettuce-hook {:template "A"}})
+        (runtime/on-load module {marigold/lettuce-hook {:template "A"}})
         (runtime/on-config-change! module
                                         {marigold/lettuce-hook {:template "A"}}
                                         {marigold/lettuce-hook {:template "B"}})
@@ -62,7 +62,7 @@
     (it "deregisters removed hooks when the slice changes"
       (sut/reset-registry!)
       (let [module (sut/make nil)]
-        (runtime/on-startup! module {marigold/lettuce-hook {:template "A"}})
+        (runtime/on-load module {marigold/lettuce-hook {:template "A"}})
         (runtime/on-config-change! module
                                         {marigold/lettuce-hook {:template "A"}}
                                         {})
@@ -73,7 +73,7 @@
       (let [module  (sut/make nil)
             before  (atom nil)
             payload {marigold/lettuce-hook {:template "A"}}]
-        (runtime/on-startup! module payload)
+        (runtime/on-load module payload)
         (reset! before (sut/lookup-hook marigold/lettuce-hook))
         (runtime/on-config-change! module payload payload)
         (should= @before (sut/lookup-hook marigold/lettuce-hook)))))

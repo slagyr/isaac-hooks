@@ -97,10 +97,12 @@
 
 (deftype HooksModule []
   reconfigurable/Reconfigurable
-  (on-startup! [_ slice]
+  (on-load [_ slice]
     (reconcile-config-hooks nil slice))
   (on-config-change! [_ old-slice new-slice]
-    (reconcile-config-hooks old-slice new-slice)))
+    (reconcile-config-hooks old-slice new-slice))
+  (on-unload [_ slice]
+    (reconcile-config-hooks slice nil)))
 
 (defn make
   "Factory: creates a HooksModule instance."
