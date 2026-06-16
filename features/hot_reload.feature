@@ -5,7 +5,6 @@ Feature: Hook config hot reload
   Background:
     Given default Grover hook setup
 
-  @wip
   Scenario: Hook template content change is picked up at runtime
     Given the hook config path "hooks.cage-check.template" is "Brain checks the lock: {{status}}"
     And the hook config path "hooks.cage-check.session-key" is "hook:cage-check"

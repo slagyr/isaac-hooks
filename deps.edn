@@ -52,7 +52,7 @@
                                                                 :deps/root "modules/marigold.longwave"}}
          :main-opts   ["-m" "speclj.main" "-c" "-D" "spec"]}
 
-  :features {:extra-paths ["spec"]
+  :features {:extra-paths ["spec" "feature-steps"]
              :extra-deps  {io.github.slagyr/isaac-foundation-spec {:git/url "https://github.com/slagyr/isaac-foundation.git"
                                                                   :git/tag "v0.1.0"
                                                                   :git/sha "535ce491e45875ac97bf97a4b2306def7bb82a7c"
