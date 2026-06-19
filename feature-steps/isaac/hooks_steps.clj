@@ -96,6 +96,7 @@
             (recur)))))))
 
 (defn default-grover-hook-setup []
+  ((requiring-resolve 'isaac.llm.api.grover/install-test-fixture!))
   (hooks/reset-registry!)
   (froot/initialize-root! "target/test-state" true)
   (write-grover-defaults!))
