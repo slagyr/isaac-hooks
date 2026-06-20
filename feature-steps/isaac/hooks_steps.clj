@@ -96,7 +96,9 @@
             (recur)))))))
 
 (defn default-grover-hook-setup []
-  ((requiring-resolve 'isaac.llm.api.grover/install-test-fixture!))
+  ;; Grover is a config-driven test provider now (models/grover.edn :provider
+  ;; :grover); the removed install-test-fixture! only reset the response queue.
+  ((requiring-resolve 'isaac.llm.api.grover/reset-queue!))
   (hooks/reset-registry!)
   (froot/initialize-root! "target/test-state" true)
   (write-grover-defaults!))
