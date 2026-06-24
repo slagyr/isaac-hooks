@@ -80,15 +80,15 @@
 
   (describe "hook template rendering"
     (it "substitutes present vars"
-      (let [result (isaac.template/render "Hello {{name}}, you have {{count}} items."
-                                           {:name "Zane" :count 3}
-                                           {:on-missing :marker})]
+      (let [result (isaac.prompt.template/render "Hello {{name}}, you have {{count}} items."
+                                                 {:name "Zane" :count 3}
+                                                 {:on-missing :marker})]
         (should= "Hello Zane, you have 3 items." result)))
 
     (it "renders (missing) for absent vars"
-      (let [result (isaac.template/render "Hello {{name}}, you have {{count}} items."
-                                           {:name "Zane"}
-                                           {:on-missing :marker})]
+      (let [result (isaac.prompt.template/render "Hello {{name}}, you have {{count}} items."
+                                                 {:name "Zane"}
+                                                 {:on-missing :marker})]
         (should= "Hello Zane, you have (missing) items." result))))
 
   (describe "unauthenticated handler"

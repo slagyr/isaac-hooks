@@ -15,7 +15,7 @@
     [isaac.session.store.spi :as store]
     [isaac.session.store.sidecar :as sidecar-store]
     [isaac.nexus :as nexus]
-    [isaac.template :as tpl]))
+    [isaac.prompt.template :as tpl]))
 
 ;; Holds the future for the most recently dispatched hook turn so test
 ;; harnesses can await completion via (deref (last-turn-future)).
