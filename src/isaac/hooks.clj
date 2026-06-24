@@ -14,7 +14,8 @@
     [isaac.session.context :as session-ctx]
     [isaac.session.store.spi :as store]
     [isaac.session.store.sidecar :as sidecar-store]
-    [isaac.nexus :as nexus]))
+    [isaac.nexus :as nexus]
+    [isaac.template :as tpl]))
 
 ;; Holds the future for the most recently dispatched hook turn so test
 ;; harnesses can await completion via (deref (last-turn-future)).
@@ -129,12 +130,6 @@
       (string? body) body
       :else          (slurp body))))
 
-(defn- render-template [template vars]
-  (str/replace template #"\{\{(\w+)\}\}"
-               (fn [[_ key]]
-                 (let [v (get vars (keyword key))]
-                   (if (some? v) (str v) "(missing)")))))
-
 (defn- json-content-type? [request]
   (let [ct (get-in request [:headers "content-type"] "")]
     (str/includes? ct "application/json")))
@@ -194,8 +189,8 @@
                       session-key      (or (:session-key hook) (str "hook:" name))
                      existing-session (store/get-session session-store session-key)
                      quarters         (str root "/crew/" crew-id)
-                     template         (:template hook)
-                     message          (render-template template body)
+                     hook-template    (:template hook)
+                     message          (tpl/render hook-template body {:on-missing :marker})
                      charge*          (charge/build {:session-key    session-key
                                                      :input          message
                                                      :comm           null-comm/channel

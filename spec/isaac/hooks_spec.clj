@@ -78,13 +78,17 @@
         (runtime/on-config-change! module payload payload)
         (should= @before (sut/lookup-hook marigold/lettuce-hook)))))
 
-  (describe "render-template"
+  (describe "hook template rendering"
     (it "substitutes present vars"
-      (let [result (#'sut/render-template "Hello {{name}}, you have {{count}} items." {:name "Zane" :count 3})]
+      (let [result (isaac.template/render "Hello {{name}}, you have {{count}} items."
+                                           {:name "Zane" :count 3}
+                                           {:on-missing :marker})]
         (should= "Hello Zane, you have 3 items." result)))
 
     (it "renders (missing) for absent vars"
-      (let [result (#'sut/render-template "Hello {{name}}, you have {{count}} items." {:name "Zane"})]
+      (let [result (isaac.template/render "Hello {{name}}, you have {{count}} items."
+                                           {:name "Zane"}
+                                           {:on-missing :marker})]
         (should= "Hello Zane, you have (missing) items." result))))
 
   (describe "unauthenticated handler"
