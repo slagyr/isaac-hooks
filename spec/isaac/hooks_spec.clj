@@ -237,9 +237,9 @@
                 (should= (str "hook:" marigold/lettuce-hook) (:session entry))
                 (should= marigold/captain (:crew entry))
                 (should= false (:existing-session? entry))
-                (should= true (:has-model-override? entry)))))))))
+                (should= true (:has-model-override? entry))))))))
 
-    (it "creates hook quarters through the installed runtime fs without binding fs/*fs*"
+    (it "creates hook quarters through the installed runtime fs without binding a thread-local fs"
       (let [mem       (fs/mem-fs)
             mem-store (store/create nil :memory)]
         (with-redefs [isaac.hooks/dispatch-turn! (fn [_] nil)]
@@ -252,7 +252,7 @@
                                                       {}))]
               (should= 202 (:status response))
               #_{:clj-kondo/ignore [:invalid-arity]}
-              (should (fs/exists? mem (str "/tmp/hooks-home/.isaac/crew/" marigold/captain)))))))
+              (should (fs/exists? mem (str "/tmp/hooks-home/.isaac/crew/" marigold/captain)))))))))
 
   (describe "hook registry"
 
@@ -288,4 +288,4 @@
     (it "throws on collision when module hook matches config hook name"
       (sut/register-hook! "ping" {:template "hello"} :config)
       (should-throw clojure.lang.ExceptionInfo
-                    (sut/register-hook! "ping" (fn [_] nil) :module))))))
+                    (sut/register-hook! "ping" (fn [_] nil) :module)))))
