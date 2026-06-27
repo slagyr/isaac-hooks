@@ -31,6 +31,20 @@
    :crew   {marigold/captain {:soul (:soul (marigold/crew-cfg marigold/captain))}}
    :models {"grover" {:model "echo" :provider marigold/grover-api :context-window 32768}}})
 
+(describe "build-frequencies-from-hook"
+
+  (it "folds legacy session-key into :session"
+    (should= {:session ["hook:lettuce"] :crew "main" :reach :one :create :if-missing :prefer :recent}
+             (sut/build-frequencies-from-hook "lettuce" {:crew "main" :session-key "hook:lettuce"})))
+
+  (it "uses describe selectors without defaulting to hook:<name>"
+    (should= {:crew "main" :reach :one :create :if-missing :prefer :recent}
+             (sut/build-frequencies-from-hook "garden" {:crew "main"})))
+
+  (it "maps legacy :model to :with-model"
+    (should= {:session ["hook:ping"] :reach :one :create :if-missing :prefer :recent :with-model "grover2"}
+             (sut/build-frequencies-from-hook "ping" {:model "grover2"}))))
+
 (describe "Webhook handler"
 
   (defn- startup-hooks! [slice]

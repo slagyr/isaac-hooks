@@ -27,18 +27,43 @@
                          :value-spec  {:name        :hook
                                        :type        :map
                                        :description "Webhook receiver configuration"
-                                       :schema      {:crew        {:type        :id
-                                                                   :description "Crew id to run the hook as"
-                                                                   :validations [:crew-exists?]}
-                                                     :id          {:type        :id
-                                                                   :description "Hook id; must match filename when present"}
-                                                     :model       {:type        :id
-                                                                   :description "Optional model override for the hook session"
-                                                                   :validations [:model-exists?]}
-                                                     :session-key {:type        :string
-                                                                   :description "Session key to use for dispatched turns"}
-                                                     :template    {:type        :string
-                                                                   :description "Rendered message template for the hook body"}}}
+                                       :schema      {:crew             {:type        :id
+                                                                        :description "Select sessions whose :crew matches"
+                                                                        :validations [:crew-exists?]}
+                                                     :create           {:type        :keyword
+                                                                        :description "Create policy: :never, :if-missing, or :always"
+                                                                        :validations [[:one-of? :never :if-missing :always]]}
+                                                     :id               {:type        :id
+                                                                        :description "Hook id; must match filename when present"}
+                                                     :model            {:type        :id
+                                                                        :description "Legacy model override; prefer :with-model"
+                                                                        :validations [:model-exists?]}
+                                                     :prefer           {:type        :keyword
+                                                                        :description "Multi-match tiebreak when multiple sessions match"
+                                                                        :validations [[:one-of? :recent :oldest]]}
+                                                     :reach            {:type        :keyword
+                                                                        :description "How many sessions to target"
+                                                                        :validations [[:one-of? :one :all]]}
+                                                     :session          {:type        :seq
+                                                                        :description "Explicit session id(s)"
+                                                                        :spec        {:type :string}}
+                                                     :session-key      {:type        :string
+                                                                        :description "Legacy explicit session id; prefer :session"}
+                                                     :session-tags     {:type        :seq
+                                                                        :description "Tags sessions must carry (AND)"
+                                                                        :spec        {:type :keyword}}
+                                                     :template         {:type        :string
+                                                                        :description "Rendered message template for the hook body"}
+                                                     :with-context-mode {:type        :keyword
+                                                                         :description "Override context mode for this turn"}
+                                                     :with-crew        {:type        :id
+                                                                        :description "Override crew for this turn"
+                                                                        :validations [:crew-exists?]}
+                                                     :with-effort      {:type        :int
+                                                                        :description "Override effort for this turn"}
+                                                     :with-model       {:type        :id
+                                                                        :description "Override model for this turn"
+                                                                        :validations [:model-exists?]}}}
                          :schema      {:auth {:name        :hook-auth
                                               :type        :map
                                               :description "Retired webhook auth configuration"

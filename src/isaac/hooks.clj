@@ -12,6 +12,7 @@
     [isaac.fs :as fs]
     [isaac.logger :as log]
     [isaac.session.context :as session-ctx]
+    [isaac.session.frequencies :as session-frequencies]
     [isaac.session.store.spi :as store]
     [isaac.session.store.sidecar :as sidecar-store]
     [isaac.nexus :as nexus]
@@ -148,6 +149,83 @@
 (defn- runtime-fs! [runtime]
   (or (fs/instance runtime) (throw (ex-info "hooks require :fs in system" {}))))
 
+(defn- coerce-keyword [value]
+  (cond
+    (keyword? value) value
+    (string? value)  (keyword value)
+    :else            value))
+
+(defn- normalize-session-ids [value]
+  (cond
+    (nil? value)       nil
+    (sequential? value) (mapv str value)
+    :else              [(str value)]))
+
+(defn- normalize-session-tags [value]
+  (when value
+    (if (set? value)
+      value
+      (into #{} (map keyword) (if (sequential? value) value [value])))))
+
+(defn build-frequencies-from-hook
+  "Build a frequencies map from hook frontmatter. Legacy :session-key and :model
+   fold into :session and :with-model; omit the hook:<name> default when describe
+   selectors are present."
+  [hook-name hook]
+  (let [has-describe? (or (:crew hook) (:session-tags hook) (:session hook))
+        session       (cond
+                        (:session hook)     (normalize-session-ids (:session hook))
+                        (:session-key hook) (normalize-session-ids (:session-key hook))
+                        has-describe?       nil
+                        :else               [(str "hook:" hook-name)])]
+    (cond-> {:reach  :one
+             :create (or (coerce-keyword (:create hook)) :if-missing)
+             :prefer (or (coerce-keyword (:prefer hook)) :recent)}
+      (or (:crew hook) (not session))
+      (assoc :crew (str (or (:crew hook) "main")))
+
+      session
+      (assoc :session session)
+
+      (:session-tags hook)
+      (assoc :session-tags (normalize-session-tags (:session-tags hook)))
+
+      (:with-model hook)
+      (assoc :with-model (str (:with-model hook)))
+
+      (:model hook)
+      (assoc :with-model (str (:model hook)))
+
+      (:with-crew hook)
+      (assoc :with-crew (str (:with-crew hook)))
+
+      (:with-effort hook)
+      (assoc :with-effort (:with-effort hook))
+
+      (:with-context-mode hook)
+      (assoc :with-context-mode (coerce-keyword (:with-context-mode hook))))))
+
+(defn- crew-quarters [root crew-id]
+  (str root "/crew/" crew-id))
+
+(defn- ensure-hook-session! [target frequencies cfg session-store root origin]
+  (if (:create? target)
+    (let [crew-id     (str (or (:crew (:create-identity target))
+                               (:with-crew frequencies)
+                               (:crew frequencies)
+                               "main"))
+          quarters    (crew-quarters root crew-id)
+          create-opts (merge {:cwd           quarters
+                              :config        cfg
+                              :origin        origin
+                              :session-store session-store}
+                             (:create-identity target)
+                             (session-frequencies/behavioral-override frequencies))]
+      (session-ctx/create-with-resolved-behavior!
+        (:session-key target) create-opts)
+      (:session-key target))
+    (:session-key target)))
+
 (defn handler
   ([request]
    (handler (nexus/necho) request))
@@ -180,39 +258,46 @@
                {:status 400 :headers {"Content-Type" "text/plain"} :body "Bad Request"}
 
                ;; 5. Render and dispatch
-                 (let [fs*              (runtime-fs! runtime)
-                       session-store    (or (nexus/get-in [:sessions :store])
-                                            (:session-store runtime)
-                                            (some-> root (sidecar-store/create-store fs*))
-                                            (throw (ex-info "hook handler requires :root or :session-store" {})))
-                      crew-id          (or (:crew hook) "main")
-                      session-key      (or (:session-key hook) (str "hook:" name))
-                     existing-session (store/get-session session-store session-key)
-                     quarters         (str root "/crew/" crew-id)
-                     hook-template    (:template hook)
-                     message          (tpl/render hook-template body {:on-missing :marker})
-                     charge*          (charge/build {:session-key    session-key
-                                                     :input          message
-                                                     :comm           null-comm/channel
-                                                     :config         (assoc cfg :root root)
-                                                     :crew           (:crew hook)
-                                                     :model-override (:model hook)
-                                                     :origin         {:kind :webhook :name name}})]
-                  (log/info :hook/dispatch-planned
-                            :hook name
-                            :session session-key
-                            :crew crew-id
-                            :cwd (:cwd existing-session)
-                            :existing-session? (boolean existing-session)
-                            :message-chars (count message)
-                            :has-model-override? (some? (:model hook)))
-                  (when-not existing-session
-                    (fs/mkdirs fs* quarters)
-                    (session-ctx/create-with-resolved-behavior!
-                      session-key {:crew          crew-id
-                                   :cwd           quarters
-                                   :config        cfg
-                                   :session-store session-store
-                                   :origin        {:kind :webhook :name name}}))
-                 (dispatch-turn! charge*)
-                 {:status 202 :headers {"Content-Type" "text/plain"} :body "Accepted"})))))))))
+                 (let [fs*           (runtime-fs! runtime)
+                       session-store (or (nexus/get-in [:sessions :store])
+                                         (:session-store runtime)
+                                         (some-> root (sidecar-store/create-store fs*))
+                                         (throw (ex-info "hook handler requires :root or :session-store" {})))
+                       frequencies   (build-frequencies-from-hook name hook)
+                       target        (session-frequencies/resolve-session-targets frequencies session-store)
+                       origin        {:kind :webhook :name name}
+                       cfg*          (assoc cfg :root root)]
+                   (if (:error target)
+                     {:status 422
+                      :headers {"Content-Type" "text/plain"}
+                      :body    (:message target)}
+
+                     (let [crew-id          (str (or (:with-crew frequencies)
+                                                     (:crew frequencies)
+                                                     "main"))
+                           hook-template    (:template hook)
+                           message          (tpl/render hook-template body {:on-missing :marker})
+                           existing-session (when (:session-key target)
+                                              (store/get-session session-store (:session-key target)))
+                           _                (when (:create? target)
+                                              (fs/mkdirs fs* (crew-quarters root crew-id)))
+                           session-key      (ensure-hook-session! target frequencies cfg* session-store root origin)
+                           session          (store/get-session session-store session-key)
+                           override         (session-frequencies/behavioral-override frequencies)
+                           charge*          (charge/build {:session-key    session-key
+                                                           :input          message
+                                                           :comm           null-comm/channel
+                                                           :config         cfg*
+                                                           :crew           (or (:crew override) (:crew session))
+                                                           :model-override (:model override)
+                                                           :origin         origin})]
+                       (log/info :hook/dispatch-planned
+                                 :hook name
+                                 :session session-key
+                                 :crew crew-id
+                                 :cwd (:cwd session)
+                                 :existing-session? (boolean existing-session)
+                                 :message-chars (count message)
+                                 :has-model-override? (some? (:with-model frequencies)))
+                       (dispatch-turn! charge*)
+                       {:status 202 :headers {"Content-Type" "text/plain"} :body "Accepted"})))))))))))

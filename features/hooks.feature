@@ -113,6 +113,63 @@ Feature: Webhook receiver
       | type    | message.role | message.content                                                                                          |
       | message | user         | Hieronymus's emergency lettuce report — 12 leaves remaining, freshness (missing)/10, expires in 4 days.  |
 
+  Scenario: hook frequencies resolve the most recent matching crew session
+    Given the following sessions exist:
+      | name       | crew | updated-at          |
+      | morning    | main | 2026-04-10T08:00:00 |
+      | last-night | main | 2026-04-12T22:00:00 |
+    And session "last-night" has transcript:
+      | type    | message.role | message.content |
+      | message | user         | prior note      |
+    And the isaac file "config/hooks/garden.md" exists with:
+      """
+      ---
+      crew: main
+      create: if-missing
+      prefer: recent
+      ---
+
+      Garden report: {{leaves}} leaves fallen.
+      """
+    When a POST request is made to "/hooks/garden":
+      | key                  | value        |
+      | body                 | {"leaves":3} |
+      | header.Authorization | Bearer secret123 |
+    Then the response status is 202
+    And session "last-night" has transcript matching:
+      | type    | message.role | message.content                 |
+      | message | user         | Garden report: 3 leaves fallen. |
+
+  Scenario: hook with-model override dispatches on the overridden model
+    Given the isaac EDN file "config/models/grover2.edn" exists with:
+      | path           | value  |
+      | model          | echo-alt |
+      | provider       | grover |
+      | context-window | 16384  |
+    And the following sessions exist:
+      | name      | crew |
+      | garden-wk | main |
+    And the following model responses are queued:
+      | model    | type | content |
+      | echo-alt | text | Raked.  |
+    And the isaac file "config/hooks/garden.md" exists with:
+      """
+      ---
+      crew: main
+      with-model: grover2
+      ---
+
+      Garden report: {{leaves}} leaves fallen.
+      """
+    When a POST request is made to "/hooks/garden":
+      | key                  | value        |
+      | body                 | {"leaves":3} |
+      | header.Authorization | Bearer secret123 |
+    Then the response status is 202
+    And session "garden-wk" has transcript matching:
+      | type    | message.model | message.content |
+      | message | echo-alt      | Raked.          |
+
   Scenario: Removing a hook config file returns 404 on the next POST
     When a POST request is made to "/hooks/lettuce":
       | key                  | value                                        |
