@@ -4,13 +4,17 @@
         io.github.slagyr/gherclj    {:git/tag "v1.3.0" :git/sha "9c3bb1d"}}
 
  :tasks
- {spec     {:doc  "Run speclj specs (pass file/dir to narrow)"
+ {config-bypass-lint {:doc "Fail on raw config slurp/read outside isaac.config.*"
+                      :task (shell "bb" "config_bypass_lint.bb" "src")}
+
+  spec     {:doc  "Run speclj specs (pass file/dir to narrow)"
             :task (if (seq *command-line-args*)
                     (apply shell "clojure" "-M:spec" *command-line-args*)
                     (shell "clojure" "-M:spec"))}
 
   ci       {:doc  "Run all spec + non-wip features"
-            :task (do (shell "clojure" "-M:spec")
+            :task (do (run 'config-bypass-lint)
+                      (shell "clojure" "-M:spec")
                       (shell "clojure" "-M:features"))}
 
   features {:doc  "Run gherclj feature specs (excludes @slow and @wip)"
