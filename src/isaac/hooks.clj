@@ -253,12 +253,15 @@
            (let [body-str (read-body request)
                  body     (try (json/parse-string body-str true)
                                (catch Exception _ ::parse-error))]
-             (if (= ::parse-error body)
-               ;; 4. Body parse error
+             (cond
+               (= ::parse-error body)
                {:status 400 :headers {"Content-Type" "text/plain"} :body "Bad Request"}
 
-               ;; 5. Render and dispatch
-                 (let [fs*           (runtime-fs! runtime)
+               (not (map? body))
+               {:status 400 :headers {"Content-Type" "text/plain"} :body "Bad Request"}
+
+               :else
+               (let [fs*           (runtime-fs! runtime)
                        session-store (or (nexus/get-in [:sessions :store])
                                          (:session-store runtime)
                                          (some-> root (sidecar-store/create-store fs*))

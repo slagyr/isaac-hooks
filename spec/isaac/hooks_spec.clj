@@ -141,7 +141,34 @@
       (nexus/-with-nexus {:root "/test"}
         (config/dangerously-install-config! test-cfg "spec")
         (let [resp (sut/handler (post-request (str "/hooks/" marigold/lettuce-hook) "not-json" {}))]
-          (should= 400 (:status resp))))))
+          (should= 400 (:status resp)))))
+
+    (it "returns 400 for a top-level JSON array without dispatching"
+      (with-redefs [isaac.hooks/dispatch-turn! (fn [_] (throw (ex-info "should not dispatch" {})))]
+        (nexus/-with-nexus {:root "/test"}
+          (config/dangerously-install-config! test-cfg "spec")
+          (let [resp (sut/handler (post-request (str "/hooks/" marigold/lettuce-hook)
+                                                "[1,2,3]" {}))]
+            (should= 400 (:status resp))
+            (should= "Bad Request" (:body resp))))))
+
+    (it "returns 400 for a top-level JSON scalar without dispatching"
+      (with-redefs [isaac.hooks/dispatch-turn! (fn [_] (throw (ex-info "should not dispatch" {})))]
+        (nexus/-with-nexus {:root "/test"}
+          (config/dangerously-install-config! test-cfg "spec")
+          (let [resp (sut/handler (post-request (str "/hooks/" marigold/lettuce-hook)
+                                                "\"just-a-string\"" {}))]
+            (should= 400 (:status resp))
+            (should= "Bad Request" (:body resp))))))
+
+    (it "returns 400 for a top-level JSON number without dispatching"
+      (with-redefs [isaac.hooks/dispatch-turn! (fn [_] (throw (ex-info "should not dispatch" {})))]
+        (nexus/-with-nexus {:root "/test"}
+          (config/dangerously-install-config! test-cfg "spec")
+          (let [resp (sut/handler (post-request (str "/hooks/" marigold/lettuce-hook)
+                                                "42" {}))]
+            (should= 400 (:status resp))
+            (should= "Bad Request" (:body resp)))))))
 
   (describe "state dir"
 

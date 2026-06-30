@@ -103,6 +103,20 @@ Feature: Webhook receiver
       | header.Authorization | Bearer secret123 |
     Then the response status is 400
 
+  Scenario: top-level JSON array returns 400
+    When a POST request is made to "/hooks/lettuce":
+      | key                  | value            |
+      | body                 | [1,2,3]          |
+      | header.Authorization | Bearer secret123 |
+    Then the response status is 400
+
+  Scenario: top-level JSON scalar returns 400
+    When a POST request is made to "/hooks/lettuce":
+      | key                  | value            |
+      | body                 | "just-a-string"  |
+      | header.Authorization | Bearer secret123 |
+    Then the response status is 400
+
   Scenario: missing template field renders (missing)
     When a POST request is made to "/hooks/lettuce":
       | key                  | value                          |
