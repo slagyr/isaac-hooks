@@ -1,32 +1,80 @@
-{:paths ["src" "resources" "spec"]
+{:paths ["src" "resources" "spec" "feature-steps"]
 
+ ;; Native babashka runners via isaac-foundation-test-support (isaac-x5ru / isaac-dt9h).
+ ;; Keep the test-support :git/sha in sync with the foundation commit that
+ ;; ships bb.test-tasks under spec-support/src/bb/.
+ ;;
+ ;; Features that load server.app → clout/instaparse stay on jvm-features
+ ;; (IHashEq protocol not in SCI). See bean isaac-dt9h.
  :deps {com.cleancoders.c3kit/apron {:mvn/version "3.0.0"}
-        io.github.slagyr/gherclj    {:git/tag "v1.3.0" :git/sha "9c3bb1d"}
+        cheshire/cheshire {:mvn/version "5.13.0"}
+        org.babashka/http-client {:mvn/version "0.4.22"}
+        speclj/speclj {:mvn/version "3.13.0"}
+        babashka/process {:mvn/version "0.5.22"}
+        io.github.slagyr/gherclj {:git/tag "v1.3.0" :git/sha "9c3bb1d"}
+        io.github.cleancoders/c3kit-wire {:git/tag "2.5.1" :git/sha "1fae444"}
+        io.github.slagyr/isaac-foundation {:git/url "https://github.com/slagyr/isaac-foundation.git"
+                                           :git/sha "43cf46e00087bf066a9e065ccc3d48dd2814ac23"}
+        io.github.slagyr/isaac-foundation-spec {:git/url "https://github.com/slagyr/isaac-foundation.git"
+                                                :git/sha "43cf46e00087bf066a9e065ccc3d48dd2814ac23"
+                                                :deps/root "spec"}
         io.github.slagyr/isaac-foundation-test-support {:git/url "https://github.com/slagyr/isaac-foundation.git"
-                                                        :git/sha "44e824c6eded90301ed1aba8ed3948c66725ee43"
-                                                        :deps/root "spec-support"}}
+                                                        :git/sha "43cf46e00087bf066a9e065ccc3d48dd2814ac23"
+                                                        :deps/root "spec-support"}
+        marigold.bridge/marigold.bridge {:git/url "https://github.com/slagyr/isaac-foundation.git"
+                                         :git/sha "43cf46e00087bf066a9e065ccc3d48dd2814ac23"
+                                         :deps/root "modules/marigold.bridge"}
+        marigold.longwave/marigold.longwave {:git/url "https://github.com/slagyr/isaac-foundation.git"
+                                             :git/sha "43cf46e00087bf066a9e065ccc3d48dd2814ac23"
+                                             :deps/root "modules/marigold.longwave"}
+        io.github.slagyr/isaac-agent {:git/url "https://github.com/slagyr/isaac-agent.git"
+                                      :git/sha "10093b4e62af2bec1baf92213dc50223d70b959a"}
+        io.github.slagyr/isaac-agent-spec {:git/url "https://github.com/slagyr/isaac-agent.git"
+                                           :git/sha "10093b4e62af2bec1baf92213dc50223d70b959a"
+                                           :deps/root "spec"}
+        io.github.slagyr/isaac-server {:git/url "https://github.com/slagyr/isaac-server.git"
+                                       :git/sha "eb51cc48b8964dabb678086ac36051a86d94c03a"}
+        io.github.slagyr/isaac-server-spec {:git/url "https://github.com/slagyr/isaac-server.git"
+                                            :git/sha "eb51cc48b8964dabb678086ac36051a86d94c03a"
+                                            :deps/root "spec"}
+        io.github.slagyr/isaac-server-test-support {:git/url "https://github.com/slagyr/isaac-server.git"
+                                                    :git/sha "eb51cc48b8964dabb678086ac36051a86d94c03a"
+                                                    :deps/root "spec-support"}}
 
  :tasks
  {config-bypass-lint {:doc "Fail on raw config slurp/read outside isaac.config.* (isaac-foundation-test-support)"
                       :requires ([isaac.foundation.config-bypass-lint :as lint])
                       :task (apply lint/lint! (or (seq *command-line-args*) ["src"]))}
 
-  spec     {:doc  "Run speclj specs (pass file/dir to narrow)"
-            :task (if (seq *command-line-args*)
-                    (apply shell "clojure" "-M:spec" *command-line-args*)
-                    (shell "clojure" "-M:spec"))}
+  spec {:doc  "Run speclj specs natively in babashka (pass file/dir to narrow)"
+        :requires ([bb.test-tasks :as tests]
+                   [babashka.process :as process])
+        :task (let [args (vec *command-line-args*)
+                    cmd  (into ["bb" "-e"
+                                "(require '[bb.test-tasks :as t]) (apply t/run-spec! *command-line-args*)"
+                                "--"]
+                               args)
+                    {:keys [exit]} (apply process/shell cmd)]
+                (when (pos? exit) (System/exit exit)))}
 
-  ci       {:doc  "Run all spec + non-wip features"
-            :task (do (run 'config-bypass-lint)
-                      (shell "clojure" "-M:spec")
-                      (shell "clojure" "-M:features"))}
+  jvm-spec {:doc  "Run speclj via clojure -M:spec (JVM fallback)"
+            :requires ([bb.test-tasks :as tests])
+            :task (binding [tests/*jvm-spec-cmd* ["clojure" "-M:spec"]]
+                    (apply tests/run-jvm-spec! *command-line-args*))}
 
-  features {:doc  "Run gherclj feature specs (excludes @slow and @wip)"
-            :task (do
-                    (run 'clean)
-                    (apply shell "clojure" "-M:features"
-                      *command-line-args*))}
+  features {:doc  "Features load server steps/app → clout (JVM-only under SCI). Delegates to jvm-features."
+            :task (apply shell "bb" "jvm-features" *command-line-args*)}
 
-  clean    {:doc  "Remove generated and test artifacts"
-            :task (do (babashka.fs/delete-tree "target")
-                      (println "Cleaned target/"))}}}
+  jvm-features {:doc  "Run gherclj via clojure -M:features (JVM fallback)"
+                :requires ([bb.test-tasks :as tests])
+                :task (binding [tests/*jvm-features-cmd* ["clojure" "-M:features"]]
+                        (apply tests/run-jvm-features! *command-line-args*))}
+
+  ci {:doc  "Native bb specs + JVM features"
+      :task (do (run 'config-bypass-lint)
+                (shell "bb" "spec")
+                (shell "bb" "jvm-features"))}
+
+  clean {:doc  "Remove generated and test artifacts"
+         :task (do (babashka.fs/delete-tree "target")
+                   (println "Cleaned target/"))}}}
