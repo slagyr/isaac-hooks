@@ -11,9 +11,9 @@
                                                 :factory isaac.hooks/register-hook-entry!
                                                 :schema  {:factory {:type :symbol :validations [:present?]}}}}}}
 
- ;; Route contribution to the server's :isaac.server/route berth (data only —
- ;; inert when no HTTP host is loaded; no code dependency on isaac-server).
- :isaac.server/route
+ ;; Route contribution to the server's :isaac.http/route berth (data only —
+ ;; inert when no HTTP host is loaded; no code dependency on isaac-http).
+ :isaac.http/route
  [{:method :* :path "/hooks/*" :handler isaac.hooks/handler}]
 
  :isaac.config/schema

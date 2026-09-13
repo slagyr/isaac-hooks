@@ -9,7 +9,7 @@
 (def ^:private session-ns 'isaac.session.session-steps)
 (def ^:private configurator-ns 'isaac.configurator-steps)
 (def ^:private harness-ns 'isaac.foundation.harness-config-steps)
-(def ^:private server-ns 'isaac.server.server-steps)
+(def ^:private server-ns 'isaac.http.server-steps)
 
 (defn- without-templates [entries templates]
   (let [drop? (set (or templates []))]

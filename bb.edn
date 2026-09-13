@@ -32,12 +32,12 @@
         io.github.slagyr/isaac-agent-spec {:git/url "https://github.com/slagyr/isaac-agent.git"
                                            :git/sha "10093b4e62af2bec1baf92213dc50223d70b959a"
                                            :deps/root "spec"}
-        io.github.slagyr/isaac-server {:git/url "https://github.com/slagyr/isaac-server.git"
+        io.github.slagyr/isaac-http {:git/url "https://github.com/slagyr/isaac-http.git"
                                        :git/sha "eb51cc48b8964dabb678086ac36051a86d94c03a"}
-        io.github.slagyr/isaac-server-spec {:git/url "https://github.com/slagyr/isaac-server.git"
+        io.github.slagyr/isaac-http-spec {:git/url "https://github.com/slagyr/isaac-http.git"
                                             :git/sha "eb51cc48b8964dabb678086ac36051a86d94c03a"
                                             :deps/root "spec"}
-        io.github.slagyr/isaac-server-test-support {:git/url "https://github.com/slagyr/isaac-server.git"
+        io.github.slagyr/isaac-http-test-support {:git/url "https://github.com/slagyr/isaac-http.git"
                                                     :git/sha "eb51cc48b8964dabb678086ac36051a86d94c03a"
                                                     :deps/root "spec-support"}}
 
