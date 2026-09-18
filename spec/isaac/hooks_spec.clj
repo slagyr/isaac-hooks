@@ -1,6 +1,7 @@
 (ns isaac.hooks-spec
   (:require
     [cheshire.core :as json]
+    [clojure.edn :as edn]
     [clojure.string :as str]
     [isaac.charge :as charge]
     [isaac.config.api :as config]
@@ -330,3 +331,13 @@
       (sut/register-hook! "ping" {:template "hello"} :config)
       (should-throw clojure.lang.ExceptionInfo
                     (sut/register-hook! "ping" (fn [_] nil) :module)))))
+
+(describe "hook HTTP route"
+
+  (it "contributes /hooks/* from the hooks module with scope :hooks"
+    (let [manifest (edn/read-string (slurp "resources/isaac-manifest.edn"))]
+      (should= [{:method  :*
+                 :path    "/hooks/*"
+                 :handler 'isaac.hooks/handler
+                 :scope   :hooks}]
+               (:isaac.http/route manifest)))))

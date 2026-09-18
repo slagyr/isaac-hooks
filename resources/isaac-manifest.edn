@@ -1,5 +1,5 @@
 {:id       :isaac.hooks
- :version  "0.1.2"
+ :version  "0.1.3"
  :builtin? true
  :factory  isaac.module.protocol/module
 
@@ -14,7 +14,7 @@
  ;; Route contribution to the server's :isaac.http/route berth (data only —
  ;; inert when no HTTP host is loaded; no code dependency on isaac-http).
  :isaac.http/route
- [{:method :* :path "/hooks/*" :handler isaac.hooks/handler}]
+ [{:method :* :path "/hooks/*" :handler isaac.hooks/handler :scope :hooks}]
 
  :isaac.config/schema
  {:hooks {:entity-dir   "hooks"
