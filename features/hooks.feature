@@ -197,3 +197,23 @@ Feature: Webhook receiver
       | body                 | {}               |
       | header.Authorization | Bearer secret123 |
     Then the response status is 404
+  # --- isaac-4o6r: hook routes declare scope :hooks (epic isaac-gym1) --------
+
+  @wip
+  Scenario: a principal scoped hooks can fire a configured hook (isaac-4o6r)
+    Given principal "iphone" is configured with secret "phone-secret" and scopes "hooks"
+    When a POST request is made to "/hooks/lettuce":
+      | key                  | value                                        |
+      | body                 | {"leaves":12,"freshness":7,"daysToExpiry":4} |
+      | header.Authorization | Bearer phone-secret                          |
+    Then the response status is 202
+
+  @wip
+  Scenario: a principal without hooks is refused with 403 and no turn starts (isaac-4o6r)
+    Given principal "ci" is configured with secret "ci-secret" and scopes "hail/send"
+    When a POST request is made to "/hooks/lettuce":
+      | key                  | value                                        |
+      | body                 | {"leaves":12,"freshness":7,"daysToExpiry":4} |
+      | header.Authorization | Bearer ci-secret                             |
+    Then the response status is 403
+    And session "hook:lettuce" does not exist
