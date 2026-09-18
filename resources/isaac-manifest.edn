@@ -68,4 +68,4 @@
                                               :type        :map
                                               :description "Retired webhook auth configuration"
                                               :schema      {:token {:type        :string
-                                                                    :validations [[:retired? "use :server :auth :token"]]}}}}}}}}
+                                                                    :validations [[:retired? "use :http :auth :token"]]}}}}}}}}

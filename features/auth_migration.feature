@@ -1,6 +1,6 @@
 Feature: Hooks auth config migration
   Webhook auth moved from `:hooks :auth :token` to server-wide
-  `:server :auth :token`. The hooks schema keeps the old slot as a
+  `:http :auth :token`. The hooks schema keeps the old slot as a
   retired field so migrated configs get a clear validation error.
 
   Background:
@@ -14,4 +14,4 @@ Feature: Hooks auth config migration
     When the config is loaded
     Then the config has validation errors matching:
       | key              | value                               |
-      | hooks.auth.token | retired.*use :server :auth :token.* |
+      | hooks.auth.token | retired.*use :http :auth :token.* |

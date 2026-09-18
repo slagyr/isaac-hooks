@@ -31,9 +31,9 @@ Feature: Webhook receiver
     And config:
       | key               | value     |
       | bind-server-port  | false     |
-      | server.host       | 0.0.0.0   |
-      | server.auth.token | secret123 |
-      | server.port       | 0         |
+      | http.host       | 0.0.0.0   |
+      | http.auth.token | secret123 |
+      | http.port       | 0         |
     And the Isaac server is started
 
   Scenario: new hook session defaults cwd to the crew quarters
