@@ -75,6 +75,13 @@ Feature: Webhook receiver
       | body | {}    |
     Then the response status is 401
 
+  Scenario: wrong bearer token returns 401 even for unknown paths
+    When a POST request is made to "/hooks/does-not-exist":
+      | key                  | value          |
+      | body                 | {}             |
+      | header.Authorization | Bearer wrong   |
+    Then the response status is 401
+
   Scenario: valid token on unknown path returns 404
     When a POST request is made to "/hooks/does-not-exist":
       | key                  | value            |
