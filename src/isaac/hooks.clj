@@ -111,12 +111,6 @@
   [_host]
   (HooksModule.))
 
-(def registry
-  {:kind    :component
-   :path    [:hooks]
-   :impl    "hooks"
-   :factory make})
-
 ;; Handler
 
 (defn- hook-name [uri]

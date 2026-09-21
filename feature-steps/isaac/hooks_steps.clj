@@ -1,6 +1,7 @@
 (ns isaac.hooks-steps
   (:require
     [clojure.edn :as edn]
+    [isaac.config.configurator :as configurator]
     [clojure.string :as str]
     [gherclj.core :as g :refer [defgiven defthen helper!]]
     [isaac.config.api :as config]
@@ -63,6 +64,13 @@
 (defn- harness-host []
   {:module-index (module-loader/builtin-index)})
 
+(defn- declared-registries
+  "What foundation will reconcile for this module: read from the manifest, the
+   same declaration production uses (isaac-bbe0)."
+  []
+  (configurator/declared-registries
+    {:isaac.hooks {:manifest (edn/read-string (slurp "resources/isaac-manifest.edn"))}}))
+
 (defn- reload-hooks-config! [_path]
   (let [root    (g/get :server-root)
         fs*     (mem-fs)
@@ -70,7 +78,7 @@
         new-cfg (:config (loader/load-config-result {:root root :fs fs*}))
         host    (harness-host)]
     (config/dangerously-install-config! new-cfg "hooks-steps: config rewrite")
-    (runtime/reconcile! host old-cfg new-cfg [hooks/registry])))
+    (runtime/reconcile! host old-cfg new-cfg (declared-registries))))
 
 (defn- persist-hook-config-path! [path value]
   (let [fs*      (mem-fs)
@@ -115,7 +123,7 @@
     (g/assoc! :config-change-source (runtime/memory-source root))
     (g/assoc! :hooks-harness-active? true)
     (runtime/install! {:config cfg
-                       :registries [hooks/registry]
+                       :registries (declared-registries)
                        :host       (harness-host)})))
 
 (defn hook-registry-entry-has [name table]

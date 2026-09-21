@@ -1,7 +1,10 @@
 {:id       :isaac.hooks
- :version  "0.1.3"
+ :version  "0.1.4"
  :builtin? true
  :factory  isaac.module.protocol/module
+
+ :isaac.config/component
+ {:hooks {:path [:hooks] :impl "hooks" :factory isaac.hooks/make}}
 
  :berths
  {:isaac.hooks/hook {:description "Event hooks installed into the hook registry. Per-entry factory resolves :factory and registers the returned spec via isaac.hooks/register-hook!."
