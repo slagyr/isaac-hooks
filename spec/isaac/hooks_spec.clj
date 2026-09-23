@@ -44,7 +44,11 @@
 
   (it "maps legacy :model to :with-model"
     (should= {:session ["hook:ping"] :reach :one :create :if-missing :prefer :recent :with-model "grover2"}
-             (sut/build-frequencies-from-hook "ping" {:model "grover2"}))))
+             (sut/build-frequencies-from-hook "ping" {:model "grover2"})))
+
+  (it "omits :crew when nothing names a crew - never a crew called main (isaac-zule)"
+    (should= {:session-tags #{:a} :reach :one :create :if-missing :prefer :recent}
+             (sut/build-frequencies-from-hook "tagged" {:session-tags [:a]}))))
 
 (describe "Webhook handler"
 
@@ -250,6 +254,31 @@
               (should= 202 (:status response))
               (should= marigold/captain (:crew @captured))
               (should= {:kind :webhook :name marigold/lettuce-hook} (:origin @captured)))))))
+
+    (it "falls back to defaults.crew when the hook names no crew - never a crew called main (isaac-zule)"
+      (let [hook-cfg  {:defaults {:crew marigold/captain :model "spark"}
+                       :hooks    {marigold/lettuce-hook {:session-key (str "hook:" marigold/lettuce-hook)
+                                                         :template    "Report: {{count}} items, freshness {{level}}/10."}}
+                       :crew     {marigold/captain {:soul (:soul (marigold/crew-cfg marigold/captain)) :model "spark"}}
+                       :models   {"spark" {:model "helm-spark-1.0" :provider marigold/quantum-anvil :context-window 32768}}}
+             captured  (atom nil)
+             mem       (fs/mem-fs)
+             mem-store (store/create nil :memory)]
+        (sut/reset-registry!)
+        (startup-hooks! (:hooks hook-cfg))
+        (with-redefs [charge/build              (fn [input]
+                                                  (reset! captured input)
+                                                  {:charge/type :charge})
+                      isaac.hooks/dispatch-turn! (fn [_] nil)]
+          (nexus/-with-nexus {:root     "/tmp/hooks-home/.isaac"
+                               :session-store mem-store
+                               :fs            mem}
+            (config/dangerously-install-config! hook-cfg "spec")
+            (let [response (sut/handler (post-request (str "/hooks/" marigold/lettuce-hook)
+                                                      (json/generate-string {:count 3 :level 8})
+                                                      {}))]
+              (should= 202 (:status response))
+              (should= marigold/captain (:crew @captured)))))))
 
     (it "logs hook dispatch planning details"
       (let [hook-cfg {:defaults {:crew marigold/captain :model "spark"}

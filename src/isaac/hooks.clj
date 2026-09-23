@@ -175,8 +175,8 @@
     (cond-> {:reach  :one
              :create (or (coerce-keyword (:create hook)) :if-missing)
              :prefer (or (coerce-keyword (:prefer hook)) :recent)}
-      (or (:crew hook) (not session))
-      (assoc :crew (str (or (:crew hook) "main")))
+      (:crew hook)
+      (assoc :crew (str (:crew hook)))
 
       session
       (assoc :session session)
@@ -207,7 +207,7 @@
     (let [crew-id     (str (or (:crew (:create-identity target))
                                (:with-crew frequencies)
                                (:crew frequencies)
-                               "main"))
+                               (get-in cfg [:defaults :crew])))
           quarters    (crew-quarters root crew-id)
           create-opts (merge {:cwd           quarters
                               :config        cfg
@@ -271,7 +271,7 @@
 
                      (let [crew-id          (str (or (:with-crew frequencies)
                                                      (:crew frequencies)
-                                                     "main"))
+                                                     (get-in cfg* [:defaults :crew])))
                            hook-template    (:template hook)
                            message          (tpl/render hook-template body {:on-missing :marker})
                            existing-session (when (:session-key target)
