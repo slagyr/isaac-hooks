@@ -255,8 +255,8 @@
               (should= marigold/captain (:crew @captured))
               (should= {:kind :webhook :name marigold/lettuce-hook} (:origin @captured)))))))
 
-    (it "falls back to defaults.crew when the hook names no crew - never a crew called main (isaac-zule)"
-      (let [hook-cfg  {:defaults {:crew marigold/captain :model "spark"}
+    (it "falls back to the default crew when the hook names no crew - never a crew called main (isaac-zule)"
+      (let [hook-cfg  {:defaults {:frequencies {:crew marigold/captain} :crew {:model "spark"}}
                        :hooks    {marigold/lettuce-hook {:session-key (str "hook:" marigold/lettuce-hook)
                                                          :template    "Report: {{count}} items, freshness {{level}}/10."}}
                        :crew     {marigold/captain {:soul (:soul (marigold/crew-cfg marigold/captain)) :model "spark"}}

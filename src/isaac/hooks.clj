@@ -6,6 +6,7 @@
     [isaac.bridge.core :as bridge]
     [isaac.charge :as charge]
     [isaac.comm.null :as null-comm]
+    [isaac.config.defaults :as defaults]
     [isaac.config.loader :as loader]
     [isaac.config.runtime :as runtime]
     [isaac.reconfigurable :as reconfigurable]
@@ -207,7 +208,7 @@
     (let [crew-id     (str (or (:crew (:create-identity target))
                                (:with-crew frequencies)
                                (:crew frequencies)
-                               (get-in cfg [:defaults :crew])))
+                               (defaults/crew-id cfg)))
           quarters    (crew-quarters root crew-id)
           create-opts (merge {:cwd           quarters
                               :config        cfg
@@ -271,7 +272,7 @@
 
                      (let [crew-id          (str (or (:with-crew frequencies)
                                                      (:crew frequencies)
-                                                     (get-in cfg* [:defaults :crew])))
+                                                     (defaults/crew-id cfg*)))
                            hook-template    (:template hook)
                            message          (tpl/render hook-template body {:on-missing :marker})
                            existing-session (when (:session-key target)
