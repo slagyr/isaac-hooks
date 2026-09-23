@@ -204,7 +204,7 @@
     (it "uses the hook model's provider when dispatching"
       (let [captured (atom nil)
             mem      (fs/mem-fs)
-            hook-cfg {:defaults {:crew marigold/captain :model "spark"}
+            hook-cfg {:defaults {:frequencies {:crew marigold/captain} :crew {:model "spark"}}
                        :hooks    {marigold/lettuce-hook {:crew        marigold/captain
                                                          :session-key (str "hook:" marigold/lettuce-hook)
                                                          :model       marigold/starcore
@@ -229,7 +229,7 @@
               (should= marigold/starcore (:model-override @captured)))))))
 
     (it "passes the crew quarters cwd and webhook origin into dispatch"
-      (let [hook-cfg  {:defaults {:crew marigold/captain :model "spark"}
+      (let [hook-cfg  {:defaults {:frequencies {:crew marigold/captain} :crew {:model "spark"}}
                        :hooks    {marigold/lettuce-hook {:crew        marigold/captain
                                                          :session-key (str "hook:" marigold/lettuce-hook)
                                                          :template    "Report: {{count}} items, freshness {{level}}/10."}}
@@ -281,7 +281,7 @@
               (should= marigold/captain (:crew @captured)))))))
 
     (it "logs hook dispatch planning details"
-      (let [hook-cfg {:defaults {:crew marigold/captain :model "spark"}
+      (let [hook-cfg {:defaults {:frequencies {:crew marigold/captain} :crew {:model "spark"}}
                        :hooks    {marigold/lettuce-hook {:crew        marigold/captain
                                                          :session-key (str "hook:" marigold/lettuce-hook)
                                                          :model       marigold/starcore

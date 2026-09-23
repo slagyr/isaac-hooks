@@ -54,7 +54,7 @@
         (fs/mkdirs fs* (str cfg-root "/providers"))
         (fs/mkdirs fs* (str cfg-root "/crew"))
         (fs/spit   fs* (str cfg-root "/isaac.edn")
-                        (pr-str {:defaults {:crew "main" :model "grover"}}))
+                        (pr-str {:defaults {:frequencies {:crew "main"} :crew {:model "grover"}}}))
         (fs/spit   fs* (str cfg-root "/models/grover.edn")
                         (pr-str {:model "echo" :provider :grover :context-window 32768}))
         (fs/spit   fs* (str cfg-root "/providers/grover.edn") (pr-str {}))
