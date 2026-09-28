@@ -34,20 +34,24 @@
 
 (describe "build-frequencies-from-hook"
 
+  (it "does not declare reach in hook frontmatter"
+    (let [manifest (edn/read-string (slurp "resources/isaac-manifest.edn"))]
+      (should-not (contains? (get-in manifest [:isaac.config/schema :hooks :schema :value-spec :schema]) :reach))))
+
   (it "folds legacy session-key into :session"
-    (should= {:session ["hook:lettuce"] :crew "main" :reach :one :create :if-missing :prefer :recent}
+    (should= {:session ["hook:lettuce"] :crew "main" :create :if-missing :prefer :recent}
              (sut/build-frequencies-from-hook "lettuce" {:crew "main" :session-key "hook:lettuce"})))
 
   (it "uses describe selectors without defaulting to hook:<name>"
-    (should= {:crew "main" :reach :one :create :if-missing :prefer :recent}
+    (should= {:crew "main" :create :if-missing :prefer :recent}
              (sut/build-frequencies-from-hook "garden" {:crew "main"})))
 
   (it "maps legacy :model to :with-model"
-    (should= {:session ["hook:ping"] :reach :one :create :if-missing :prefer :recent :with-model "grover2"}
+    (should= {:session ["hook:ping"] :create :if-missing :prefer :recent :with-model "grover2"}
              (sut/build-frequencies-from-hook "ping" {:model "grover2"})))
 
   (it "omits :crew when nothing names a crew - never a crew called main (isaac-zule)"
-    (should= {:session-tags #{:a} :reach :one :create :if-missing :prefer :recent}
+    (should= {:session-tags #{:a} :create :if-missing :prefer :recent}
              (sut/build-frequencies-from-hook "tagged" {:session-tags [:a]}))))
 
 (describe "Webhook handler"

@@ -173,8 +173,7 @@
                         (:session-key hook) (normalize-session-ids (:session-key hook))
                         has-describe?       nil
                         :else               [(str "hook:" hook-name)])]
-    (cond-> {:reach  :one
-             :create (or (coerce-keyword (:create hook)) :if-missing)
+    (cond-> {:create (or (coerce-keyword (:create hook)) :if-missing)
              :prefer (or (coerce-keyword (:prefer hook)) :recent)}
       (:crew hook)
       (assoc :crew (str (:crew hook)))

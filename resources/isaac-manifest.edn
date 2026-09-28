@@ -1,5 +1,5 @@
 {:id       :isaac.hooks
- :version  "0.1.5"
+ :version  "0.1.6"
  :builtin? true
  :factory  isaac.module.protocol/module
 
@@ -44,9 +44,6 @@
                                                      :prefer           {:type        :keyword
                                                                         :description "Multi-match tiebreak when multiple sessions match"
                                                                         :validations [[:one-of? :recent :oldest]]}
-                                                     :reach            {:type        :keyword
-                                                                        :description "How many sessions to target"
-                                                                        :validations [[:one-of? :one :all]]}
                                                      :session          {:type        :seq
                                                                         :description "Explicit session id(s)"
                                                                         :spec        {:type :string}}
