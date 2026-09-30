@@ -1,13 +1,13 @@
-(ns isaac.hooks-feature-bootstrap
+(ns isaac.hooks.feature-bootstrap
   "Loaded after isaac.**-steps. Drops colliding step templates so hooks
    features can share the foundation/session/server step surface without
    ambiguous matches (isaac-iz35)."
-  (:require [isaac.logger :as log]))
+  (:require [isaac.foundation.logger :as log]))
 
 (log/set-output! :memory)
 
-(def ^:private session-ns 'isaac.session.session-steps)
-(def ^:private configurator-ns 'isaac.configurator-steps)
+(def ^:private session-ns 'isaac.agent.session.session-steps)
+(def ^:private configurator-ns 'isaac.http.configurator-steps)
 (def ^:private harness-ns 'isaac.foundation.harness-config-steps)
 (def ^:private server-ns 'isaac.http.server-steps)
 

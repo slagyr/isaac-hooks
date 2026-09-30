@@ -3,15 +3,15 @@
     [cheshire.core :as json]
     [clojure.edn :as edn]
     [clojure.string :as str]
-    [isaac.charge :as charge]
-    [isaac.config.api :as config]
-    [isaac.config.runtime :as runtime]
-    [isaac.fs :as fs]
+    [isaac.agent.charge :as charge]
+    [isaac.foundation.config.api :as config]
+    [isaac.foundation.config.runtime :as runtime]
+    [isaac.foundation.fs :as fs]
     [isaac.hooks :as sut]
-    [isaac.logger :as log]
-    [isaac.marigold :as marigold]
-    [isaac.session.store.spi :as store]
-    [isaac.nexus :as nexus]
+    [isaac.foundation.logger :as log]
+    [isaac.foundation.marigold :as marigold]
+    [isaac.agent.session.store.spi :as store]
+    [isaac.foundation.nexus :as nexus]
     [speclj.core :refer :all]))
 
 (defn- post-request [path body headers]
@@ -103,13 +103,13 @@
 
   (describe "hook template rendering"
     (it "substitutes present vars"
-      (let [result (isaac.prompt.template/render "Hello {{name}}, you have {{count}} items."
+      (let [result (isaac.agent.prompt.template/render "Hello {{name}}, you have {{count}} items."
                                                  {:name "Zane" :count 3}
                                                  {:on-missing :marker})]
         (should= "Hello Zane, you have 3 items." result)))
 
     (it "renders (missing) for absent vars"
-      (let [result (isaac.prompt.template/render "Hello {{name}}, you have {{count}} items."
+      (let [result (isaac.agent.prompt.template/render "Hello {{name}}, you have {{count}} items."
                                                  {:name "Zane"}
                                                  {:on-missing :marker})]
         (should= "Hello Zane, you have (missing) items." result))))

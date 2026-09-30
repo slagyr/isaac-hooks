@@ -1,21 +1,21 @@
-(ns isaac.hooks-steps
+(ns isaac.hooks.steps
   (:require
     [clojure.edn :as edn]
-    [isaac.config.configurator :as configurator]
+    [isaac.foundation.config.configurator :as configurator]
     [clojure.string :as str]
     [gherclj.core :as g :refer [defgiven defthen helper!]]
-    [isaac.config.api :as config]
-    [isaac.config.loader :as loader]
-    [isaac.config.runtime :as runtime]
+    [isaac.foundation.config.api :as config]
+    [isaac.foundation.config.loader :as loader]
+    [isaac.foundation.config.runtime :as runtime]
     [isaac.foundation.fs-steps :as ffs]
     [isaac.foundation.root-steps :as froot]
-    [isaac.fs :as fs]
+    [isaac.foundation.fs :as fs]
     [isaac.hooks :as hooks]
-    [isaac.module.loader :as module-loader]
-    [isaac.nexus :as nexus]
-    [isaac.spec-helper :as helper]))
+    [isaac.foundation.module.loader :as module-loader]
+    [isaac.foundation.nexus :as nexus]
+    [isaac.agent.spec-helper :as helper]))
 
-(helper! isaac.hooks-steps)
+(helper! isaac.hooks.steps)
 
 (defn- root-dir []
   (or (g/get :runtime-root-dir) (g/get :root)))
@@ -106,7 +106,7 @@
 (defn default-grover-hook-setup []
   ;; Grover is a config-driven test provider now (models/grover.edn :provider
   ;; :grover); the removed install-test-fixture! only reset the response queue.
-  ((requiring-resolve 'isaac.llm.api.grover/reset-queue!))
+  ((requiring-resolve 'isaac.agent.llm.api.grover/reset-queue!))
   (hooks/reset-registry!)
   (froot/initialize-root! "target/test-state" true)
   (write-grover-defaults!))
@@ -149,10 +149,10 @@
     (g/assoc! :hooks-harness-active? false)
     (hooks/reset-registry!)))
 
-(defgiven "default Grover hook setup" isaac.hooks-steps/default-grover-hook-setup)
+(defgiven "default Grover hook setup" isaac.hooks.steps/default-grover-hook-setup)
 
-(defgiven "the hook config path {path:string} is {value:string}" isaac.hooks-steps/hook-config-path-is)
+(defgiven "the hook config path {path:string} is {value:string}" isaac.hooks.steps/hook-config-path-is)
 
-(defgiven "the Isaac config harness is started" isaac.hooks-steps/config-harness-started)
+(defgiven "the Isaac config harness is started" isaac.hooks.steps/config-harness-started)
 
-(defthen "the hook {name:string} registry entry has:" isaac.hooks-steps/hook-registry-entry-has)
+(defthen "the hook {name:string} registry entry has:" isaac.hooks.steps/hook-registry-entry-has)

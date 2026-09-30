@@ -1,7 +1,7 @@
 {:id       :isaac.hooks
  :version  "0.1.6"
  :builtin? true
- :factory  isaac.module.protocol/module
+ :factory  isaac.foundation.module.protocol/module
  :handbook "isaac/hooks/handbook.md"
 
  :isaac.config/component
