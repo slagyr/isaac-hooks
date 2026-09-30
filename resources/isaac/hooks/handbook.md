@@ -7,11 +7,12 @@ chapter (`handbook__read` topic `isaac.foundation`) covers config
 mechanics, the vocabulary table, and hot reload — read it first if you
 haven't. This chapter uses "crew", "session", and "turn" the way
 `isaac.agent` defines them; that chapter owns session targeting
-(frequencies: matching or creating a session by crew/tags/id) and the
-turn dispatch mechanics themselves — this chapter names them once and
-moves on. Everything about *who* is allowed to call a hook at all —
-bearer tokens, principals, scopes — belongs to `isaac.http`; hooks
-contributes only the route, not the auth check.
+(frequencies: matching or creating a session by crew/tags/id — see
+`isaac.agent#frequencies`) and the turn dispatch mechanics themselves —
+this chapter names them once and moves on. Everything about *who* is
+allowed to call a hook at all — bearer tokens, principals, scopes —
+belongs to `isaac.http`; hooks contributes only the route, not the auth
+check.
 
 Hooks has no CLI commands and no comms of its own. It ships one HTTP
 route, one config table, and a small in-memory registry that the route
@@ -61,10 +62,10 @@ config set hooks.lettuce.template "Report: {{count}} items."
 ```
 
 Session targeting itself (`:crew`, `:session-tags`, `:create`,
-`:prefer`, and the `:with-*` turn overrides) is the same frequencies
-shape `isaac.agent` uses elsewhere — read that chapter for how matching,
-creation, and tiebreaking actually work; this table only says which
-hook field maps to which frequency.
+`:prefer`, and the `:with-*` turn overrides) is `isaac.agent`'s frequencies
+shape — see `isaac.agent#frequencies` for how matching, creation, and
+tiebreaking actually work; this table only says which hook field maps to
+which frequency.
 
 **How to verify.** `isaac config validate` reports a hook entity that
 names an undefined `:crew` or `:model`/`:with-model` — the error names
@@ -151,8 +152,8 @@ sign of a swallowed error.
 ## Session targeting and turn dispatch
 
 **What it is.** Once a request clears the pipeline above, the hook's
-frontmatter is turned into a frequencies map (`isaac.agent`'s session
-targeting shape) and resolved against existing sessions:
+frontmatter is turned into a frequencies map (`isaac.agent#frequencies`)
+and resolved against existing sessions:
 
 - A **new** session created for a hook gets its `cwd` set to that crew's
   quarters (`<root>/crew/<crew-id>`) — the same quarters any other
@@ -199,7 +200,7 @@ never sees it — only the log does.
 - **A hook keeps creating a brand-new session instead of reusing the one
   I expect.** Check `:create`/`:prefer` and whichever selector
   (`:crew`, `:session-tags`, explicit `:session`) the hook declares —
-  this is `isaac.agent` frequency-resolution behavior, not something
+  this is `isaac.agent#frequencies` resolution behavior, not something
   hooks decides on its own; multiple candidate sessions with `:prefer`
   unset defaults to the most recently updated one.
 
