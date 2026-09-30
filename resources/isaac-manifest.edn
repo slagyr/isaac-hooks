@@ -2,6 +2,7 @@
  :version  "0.1.6"
  :builtin? true
  :factory  isaac.module.protocol/module
+ :handbook "isaac/hooks/handbook.md"
 
  :isaac.config/component
  {:hooks {:path [:hooks] :impl "hooks" :factory isaac.hooks/make}}
@@ -12,7 +13,9 @@
                                    :key-spec   {:type :keyword}
                                    :value-spec {:type    :map
                                                 :factory isaac.hooks/register-hook-entry!
-                                                :schema  {:factory {:type :symbol :validations [:present?]}}}}}}
+                                                :schema  {:factory {:type        :symbol
+                                                                    :description "Fully-qualified symbol of a zero-arg function returning the hook spec to register"
+                                                                    :validations [:present?]}}}}}}
 
  ;; Route contribution to the server's :isaac.http/route berth (data only —
  ;; inert when no HTTP host is loaded; no code dependency on isaac-http).
@@ -68,4 +71,5 @@
                                               :type        :map
                                               :description "Retired webhook auth configuration"
                                               :schema      {:token {:type        :string
+                                                                    :description "Retired; webhook auth moved to :http :auth :token"
                                                                     :validations [[:retired? "use :http :auth :token"]]}}}}}}}}
