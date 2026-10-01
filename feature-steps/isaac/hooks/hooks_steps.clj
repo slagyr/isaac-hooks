@@ -1,4 +1,4 @@
-(ns isaac.hooks.steps
+(ns isaac.hooks.hooks-steps
   (:require
     [clojure.edn :as edn]
     [isaac.foundation.config.configurator :as configurator]
@@ -15,7 +15,7 @@
     [isaac.foundation.nexus :as nexus]
     [isaac.agent.spec-helper :as helper]))
 
-(helper! isaac.hooks.steps)
+(helper! isaac.hooks.hooks-steps)
 
 (defn- root-dir []
   (or (g/get :runtime-root-dir) (g/get :root)))
@@ -149,10 +149,10 @@
     (g/assoc! :hooks-harness-active? false)
     (hooks/reset-registry!)))
 
-(defgiven "default Grover hook setup" isaac.hooks.steps/default-grover-hook-setup)
+(defgiven "default Grover hook setup" isaac.hooks.hooks-steps/default-grover-hook-setup)
 
-(defgiven "the hook config path {path:string} is {value:string}" isaac.hooks.steps/hook-config-path-is)
+(defgiven "the hook config path {path:string} is {value:string}" isaac.hooks.hooks-steps/hook-config-path-is)
 
-(defgiven "the Isaac config harness is started" isaac.hooks.steps/config-harness-started)
+(defgiven "the Isaac config harness is started" isaac.hooks.hooks-steps/config-harness-started)
 
-(defthen "the hook {name:string} registry entry has:" isaac.hooks.steps/hook-registry-entry-has)
+(defthen "the hook {name:string} registry entry has:" isaac.hooks.hooks-steps/hook-registry-entry-has)
